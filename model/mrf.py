@@ -1,10 +1,11 @@
+import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
-import matplotlib.pyplot as plt
 
 # -- Configuration --
 batch_size = 100
 num_epochs = 500
+
 
 # Simulate coin toss data (X: 0=heads, 1=tails)
 def generate_coin_data(batch_size, p_heads=0.5, mnar=True):
@@ -17,9 +18,10 @@ def generate_coin_data(batch_size, p_heads=0.5, mnar=True):
     Y = torch.where(O == 1, X, -1)  # -1 indicates missing
     return X, O, Y
 
+
 # Define generic factor-based model
 class CoinMRF(nn.Module):
-    def __init__(self, model_type='MNAR'):
+    def __init__(self, model_type="MNAR"):
         super().__init__()
         self.model_type = model_type
         self.theta = nn.Parameter(torch.tensor(0.0))  # coin bias
@@ -39,21 +41,19 @@ class CoinMRF(nn.Module):
 
     def _log_joint(self, x, o):
         log_phi1 = self.theta * x
-        if self.model_type == 'MNAR':
+        if self.model_type == "MNAR":
             log_phi2 = self.psi * x * o  # ψ * x * o → MNAR
-        elif self.model_type == 'MCAR':
-            log_phi2 = self.psi * o       # ψ * o → MCAR
+        elif self.model_type == "MCAR":
+            log_phi2 = self.psi * o  # ψ * o → MCAR
         else:
             log_phi2 = 0.0
         return log_phi1 + log_phi2
 
+
 # Train both models and track losses
 def train_models(Y, epochs):
-    models = {
-        'MCAR': CoinMRF(model_type='MCAR'),
-        'MNAR': CoinMRF(model_type='MNAR')
-    }
-    losses = {'MCAR': [], 'MNAR': []}
+    models = {"MCAR": CoinMRF(model_type="MCAR"), "MNAR": CoinMRF(model_type="MNAR")}
+    losses = {"MCAR": [], "MNAR": []}
 
     for name, model in models.items():
         optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
@@ -64,6 +64,7 @@ def train_models(Y, epochs):
             optimizer.step()
             losses[name].append(loss.item())
     return models, losses
+
 
 # Plot loss curves
 def plot_losses(losses):
@@ -76,10 +77,13 @@ def plot_losses(losses):
     plt.grid(True)
     plt.show()
 
+
 # Main
 if __name__ == "__main__":
     torch.manual_seed(42)
-    X, O, Y = generate_coin_data(batch_size=batch_size, mnar=True)  # Change mnar=True/False for test
+    X, O, Y = generate_coin_data(
+        batch_size=batch_size, mnar=True
+    )  # Change mnar=True/False for test
     models, losses = train_models(Y, epochs=num_epochs)
 
     print("\nLearned Parameters:")
@@ -87,4 +91,3 @@ if __name__ == "__main__":
         print(f"{name}: θ = {model.theta.item():.4f}, ψ = {model.psi.item():.4f}")
 
     plot_losses(losses)
-
